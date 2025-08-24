@@ -3,16 +3,17 @@ package config
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
-	ConnectTime  string `yaml:"connect_timeout"`
-	ReadTime     string `yaml:"read_timeout"`
-	SenTime      string `yaml:"send_timeout"`
-	DatabasePath string `yaml:"database_path"`
+	ConnectTime  time.Duration `yaml:"connect_timeout"`
+	ReadTime     time.Duration `yaml:"read_timeout"`
+	SendTime     time.Duration `yaml:"send_timeout"`
+	DatabasePath string        `yaml:"database_path"`
 	Server
 }
 
@@ -31,7 +32,7 @@ func Init() (*Config, error) {
 
 	path := os.Getenv("CONFIG_PATH")
 	if path == "" {
-		return nil, fmt.Errorf("Путь конфига не найден: %v", err)
+		return nil, fmt.Errorf("Путь конфига не найден")
 	}
 
 	data, err := os.ReadFile(path)

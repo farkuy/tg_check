@@ -11,7 +11,7 @@ func main() {
 
 	cfg, err := config.Init()
 	if err != nil {
-		slog.Error(err.Error())
+		slog.Error("Ошибка инициализации конфига", "error", err)
 		os.Exit(1)
 	}
 
