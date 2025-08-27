@@ -14,6 +14,7 @@ type Config struct {
 	ReadTime     time.Duration `yaml:"read_timeout"`
 	SendTime     time.Duration `yaml:"send_timeout"`
 	DatabasePath string        `yaml:"database_path"`
+	Environment  string        `yaml:"environment"`
 	Server
 }
 
