@@ -1,7 +1,7 @@
 package database
 
 const (
-	CreareStoragesTable = `CREATE TABLE IF NOT EXISTS storages
+	creareStoragesTable = `CREATE TABLE IF NOT EXISTS storages
 	(
     	id SERIAL PRIMARY KEY,
     	sum INT DEFAULT 0,
@@ -10,7 +10,16 @@ const (
     	deadLineDate TIMESTAMP WITH TIME ZONE
 	)`
 
-	CreareTargetsTable = `CREATE TABLE IF NOT EXISTS targets
+	createStorageHistoryTable = `CREATE TABLE IF NOT EXISTS storageHistory 
+	(
+		id SERIAL PRIMARY KEY,
+		type TEXT NOT NULL,
+		changeSum INT NOT NULL, 
+		date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+		storageId INT REFERENCES storages(id)    
+	)`
+
+	creareTargetsTable = `CREATE TABLE IF NOT EXISTS targets
 	(
     	id SERIAL PRIMARY KEY,
     	sum INT DEFAULT 0,
@@ -20,13 +29,13 @@ const (
     	deadLineDate TIMESTAMP WITH TIME ZONE
 	)`
 
-	CreateTargetHistoryTable = `CREATE TABLE IF NOT EXISTS targetHistory 
+	createTargetHistoryTable = `CREATE TABLE IF NOT EXISTS targetHistory 
 	(
 		id SERIAL PRIMARY KEY,
 		type TEXT NOT NULL,
 		changeSum INT NOT NULL, 
 		date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-		targetsId INT REFERENCES targets(id)    
+		targetId INT REFERENCES targets(id)    
 	)
 	`
 )
