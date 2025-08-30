@@ -3,7 +3,6 @@ package database
 import (
 	"database/sql"
 	"fmt"
-	"time"
 
 	_ "github.com/lib/pq"
 )
@@ -13,6 +12,10 @@ type Query struct {
 	createQuery string
 }
 
+type Storage struct {
+	DB *sql.DB
+}
+
 var tablesName = []Query{
 	{name: "storages", createQuery: creareStoragesTable},
 	{name: "storageHistory", createQuery: createStorageHistoryTable},
@@ -20,7 +23,7 @@ var tablesName = []Query{
 	{name: "targetHistory", createQuery: createTargetHistoryTable},
 }
 
-func Init(dbPath string) (*sql.DB, error) {
+func Init(dbPath string) (*Storage, error) {
 	db, err := sql.Open("postgres", dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка открытия бд: %v", err)
@@ -30,8 +33,7 @@ func Init(dbPath string) (*sql.DB, error) {
 		return nil, fmt.Errorf("не удалось подключиться к базе данных: %v", err)
 	}
 
-	//Можно попробовать горутину
-	start := time.Now()
+	//Попробовать переписать через горутины ебучие с каналами
 	for _, table := range tablesName {
 		checkingTable := checkTable(table.name)
 
@@ -46,10 +48,8 @@ func Init(dbPath string) (*sql.DB, error) {
 			}
 		}
 	}
-	elapsed := time.Since(start)
-	fmt.Printf("Время выполнения проверки и создания таблиц: %s\n", elapsed)
 
-	return db, nil
+	return &Storage{DB: db}, nil
 }
 
 func checkTable(tableName string) string {
