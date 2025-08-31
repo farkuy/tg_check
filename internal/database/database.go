@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"sync"
 
 	_ "github.com/lib/pq"
 )
@@ -24,6 +25,7 @@ var tablesName = []Query{
 }
 
 func Init(dbPath string) (*Storage, error) {
+
 	db, err := sql.Open("postgres", dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка открытия бд: %v", err)
@@ -33,19 +35,36 @@ func Init(dbPath string) (*Storage, error) {
 		return nil, fmt.Errorf("не удалось подключиться к базе данных: %v", err)
 	}
 
-	//Попробовать переписать через горутины ебучие с каналами
+	var wg sync.WaitGroup
+	errors := make(chan error)
+
+	wg.Add(len(tablesName))
 	for _, table := range tablesName {
-		checkingTable := checkTable(table.name)
+		go func(table Query) {
+			defer wg.Done()
 
-		var exists bool
-		if err = db.QueryRow(checkingTable).Scan(&exists); err != nil {
-			return nil, fmt.Errorf("ошибка проверки таблицы %v : %v", table.name, err)
-		}
+			checkingTable := checkTable(table.name)
 
-		if !exists {
-			if _, err = db.Exec(table.createQuery); err != nil {
-				return nil, fmt.Errorf("ошибка создания таблицы: %v", err)
+			var exists bool
+			if err = db.QueryRow(checkingTable).Scan(&exists); err != nil {
+				errors <- fmt.Errorf("ошибка проверки таблицы %v : %v", table.name, err)
 			}
+
+			if !exists {
+				if _, err = db.Exec(table.createQuery); err != nil {
+					errors <- fmt.Errorf("ошибка создания таблицы %v : %v", table.name, err)
+				}
+			}
+		}(table)
+	}
+
+	wg.Wait()
+	close(errors)
+
+	for range tablesName {
+		err = <-errors
+		if err != nil {
+			return nil, err
 		}
 	}
 
