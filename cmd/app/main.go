@@ -7,7 +7,7 @@ import (
 	"os"
 	"tg_check/internal/config"
 	"tg_check/internal/database"
-	targets "tg_check/internal/domain/storages"
+	"tg_check/internal/domain/storages"
 	"tg_check/internal/logger"
 
 	"github.com/go-chi/chi/v5"
@@ -31,10 +31,17 @@ func main() {
 	fmt.Println(storage.DB)
 	router := chi.NewRouter()
 
-	router.Post("/storages", targets.PostTarget(storage))
+	storages.StoragesHandlersInit(router, storage)
 
-	http.ListenAndServe()
-	//написать основные ручки
+	server := &http.Server{
+		Addr:         cfg.Host + ":" + cfg.Port,
+		Handler:      router,
+		ReadTimeout:  cfg.ReadTime,
+		WriteTimeout: cfg.SendTime,
+	}
 
-	//запуск сервера
+	if err = server.ListenAndServe(); err != nil {
+		slog.Error("Ошибка старта сервера:", err)
+	}
+	slog.Info("Сервер стартовал на:", cfg.Host, cfg.Port)
 }

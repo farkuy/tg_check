@@ -1,7 +1,7 @@
 package database
 
 const (
-	creareStoragesTable = `CREATE TABLE IF NOT EXISTS storages
+	createStoragesTable = `CREATE TABLE IF NOT EXISTS storages
 	(
     	id SERIAL PRIMARY KEY,
     	sum INT DEFAULT 0,
@@ -19,7 +19,7 @@ const (
 		storageId INT REFERENCES storages(id)    
 	)`
 
-	creareTargetsTable = `CREATE TABLE IF NOT EXISTS targets
+	createTargetsTable = `CREATE TABLE IF NOT EXISTS targets
 	(
     	id SERIAL PRIMARY KEY,
     	sum INT DEFAULT 0,

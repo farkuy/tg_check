@@ -1,4 +1,4 @@
-package targets
+package storages
 
 import (
 	"fmt"
@@ -7,39 +7,33 @@ import (
 	"time"
 )
 
-type Target struct {
+type Storage struct {
 	Id           int       `json:"id"`
 	Sum          int       `json:"sum"`
 	Accumulated  int       `json:"accumulated"`
+	CreateDate   time.Time `json:"createDate"`
 	DeadLineDate time.Time `json:"deadLineDate"`
 }
 
-func postTarget(storage *database.Storage, sum, accumulated int, deadLineDate time.Time) (*Target, error) {
-	log := slog.With("repository", "target", "create")
+type StorageWrapper struct {
+	*database.Storage
+}
 
-	target := &Target{}
-	err := storage.DB.QueryRow(postTargetQuery, sum, accumulated, deadLineDate).Scan(
+func (storage *StorageWrapper) postTargetSql(sum, accumulated int, deadLineDate time.Time) (*Storage, error) {
+	log := slog.With("repository", "storage")
+
+	target := &Storage{}
+	err := storage.DB.QueryRow(postStorageQuery, sum, accumulated, deadLineDate).Scan(
 		&target.Id,
 		&target.Sum,
 		&target.Accumulated,
+		&target.CreateDate,
 		&target.DeadLineDate,
 	)
+
 	if err != nil {
-		log.Error(err.Error())
+		log.Error("ошибка создания", err)
 		return nil, fmt.Errorf("ошибка создания target с sum:(%v), accumulated:(%v), deadLineDate:(%v)", sum, accumulated, deadLineDate)
-	}
-
-	return target, nil
-}
-
-func getTarget(storage *database.Storage, id int) (Target, error) {
-	log := slog.With("repository", "target", "get")
-
-	var target Target
-	err := storage.DB.QueryRow(getTargetQuery, id).Scan(&target.Sum, &target.Accumulated, &target.DeadLineDate)
-	if err != nil {
-		log.Error(err.Error())
-		return target, fmt.Errorf("ошибка получения target с id:(%v)", id)
 	}
 
 	return target, nil
