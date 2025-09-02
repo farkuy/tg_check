@@ -18,14 +18,14 @@ type Storage struct {
 }
 
 var tablesName = []Query{
-	{name: "storages", createQuery: creareStoragesTable},
+	{name: "storages", createQuery: createStoragesTable},
 	{name: "storageHistory", createQuery: createStorageHistoryTable},
-	{name: "targets", createQuery: creareTargetsTable},
+	{name: "targets", createQuery: createTargetsTable},
 	{name: "targetHistory", createQuery: createTargetHistoryTable},
 }
 
+// Подумать над механизмом миграции
 func Init(dbPath string) (*Storage, error) {
-
 	db, err := sql.Open("postgres", dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка открытия бд: %v", err)
@@ -36,7 +36,7 @@ func Init(dbPath string) (*Storage, error) {
 	}
 
 	var wg sync.WaitGroup
-	errors := make(chan error)
+	errorsCh := make(chan error, len(tablesName))
 
 	wg.Add(len(tablesName))
 	for _, table := range tablesName {
@@ -46,26 +46,39 @@ func Init(dbPath string) (*Storage, error) {
 			checkingTable := checkTable(table.name)
 
 			var exists bool
-			if err = db.QueryRow(checkingTable).Scan(&exists); err != nil {
-				errors <- fmt.Errorf("ошибка проверки таблицы %v : %v", table.name, err)
+			if err := db.QueryRow(checkingTable).Scan(&exists); err != nil {
+				errorsCh <- fmt.Errorf("ошибка проверки таблицы %v : %v", table.name, err)
 			}
 
 			if !exists {
-				if _, err = db.Exec(table.createQuery); err != nil {
-					errors <- fmt.Errorf("ошибка создания таблицы %v : %v", table.name, err)
+				if _, err := db.Exec(table.createQuery); err != nil {
+					errorsCh <- fmt.Errorf("ошибка создания таблицы %v : %v", table.name, err)
 				}
 			}
 		}(table)
 	}
 
 	wg.Wait()
-	close(errors)
+	close(errorsCh)
 
-	for range tablesName {
-		err = <-errors
+	var errorsGroup = []error{}
+	for {
+		err, ok := <-errorsCh
 		if err != nil {
-			return nil, err
+			errorsGroup = append(errorsGroup, err)
 		}
+
+		if !ok {
+			break
+		}
+	}
+
+	if len(errorsGroup) > 0 {
+		allErros := ""
+		for _, val := range errorsGroup {
+			allErros = allErros + ", " + val.Error()
+		}
+		return nil, fmt.Errorf("ошибки инициализации стораджа: %v", allErros)
 	}
 
 	return &Storage{DB: db}, nil
