@@ -19,22 +19,42 @@ type StorageWrapper struct {
 	*database.Storage
 }
 
-func (storage *StorageWrapper) postTargetSql(sum, accumulated int, deadLineDate time.Time) (*Storage, error) {
-	log := slog.With("repository", "storage")
+func (storage *StorageWrapper) postStorageSql(sum, accumulated int, deadLineDate time.Time) (*Storage, error) {
+	log := slog.With("repository", "storage post")
 
-	target := &Storage{}
+	data := &Storage{}
 	err := storage.DB.QueryRow(postStorageQuery, sum, accumulated, deadLineDate).Scan(
-		&target.Id,
-		&target.Sum,
-		&target.Accumulated,
-		&target.CreateDate,
-		&target.DeadLineDate,
+		&data.Id,
+		&data.Sum,
+		&data.Accumulated,
+		&data.CreateDate,
+		&data.DeadLineDate,
 	)
 
 	if err != nil {
 		log.Error("ошибка создания", err)
-		return nil, fmt.Errorf("ошибка создания target с sum:(%v), accumulated:(%v), deadLineDate:(%v)", sum, accumulated, deadLineDate)
+		return nil, fmt.Errorf("ошибка создания storage с sum:(%v), accumulated:(%v), deadLineDate:(%v)", sum, accumulated, deadLineDate)
 	}
 
-	return target, nil
+	return data, nil
+}
+
+func (storage *StorageWrapper) getStorageSql(id int) (*Storage, error) {
+	log := slog.With("repository", "storage get")
+
+	data := &Storage{}
+	err := storage.DB.QueryRow(getStorageQuery, id).Scan(
+		&data.Id,
+		&data.Sum,
+		&data.Accumulated,
+		&data.CreateDate,
+		&data.DeadLineDate,
+	)
+
+	if err != nil {
+		log.Error("ошибка получение цели", err)
+		return nil, fmt.Errorf("ошибка получения storage с id:(%v)", id)
+	}
+
+	return data, nil
 }

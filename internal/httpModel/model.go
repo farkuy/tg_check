@@ -9,7 +9,7 @@ const (
 
 type Response struct {
 	Status Status `json:"status"`
-	Error  string `json:"error"`
+	Error  string `json:"error,omitempty"`
 }
 
 func OK() Response {

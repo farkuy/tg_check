@@ -7,28 +7,37 @@ import (
 	"time"
 
 	"github.com/go-chi/render"
+	"github.com/go-playground/validator/v10"
 )
 
-type requestStorage struct {
+type requestStorageCreate struct {
 	Sum          int       `json:"sum" validate:"required"`
 	Accumulated  int       `json:"accumulated" validate:"required"`
 	DeadLineDate time.Time `json:"deadLineDate" validate:"required"`
 }
 
+type requestStorageFind struct {
+	Id int `json:"id" validate:"required"`
+}
+
 type responseStorage struct {
-	Id int `json:"id"`
+	Storage *Storage `json:"storage"`
 	httpModel.Response
 }
 
 type storageCreacte interface {
-	postTargetSql(sum, accumulated int, deadLineDate time.Time) (*Storage, error)
+	postStorageSql(sum, accumulated int, deadLineDate time.Time) (*Storage, error)
 }
 
-func postStorage(tCreate storageCreacte) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		log := slog.With("service", "storage")
+type storageFind interface {
+	getStorageSql(id int) (*Storage, error)
+}
 
-		var req requestStorage
+func postStorage(sCreate storageCreacte) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		log := slog.With("service", "storage post")
+
+		var req requestStorageCreate
 		err := render.DecodeJSON(r.Body, &req)
 		if err != nil {
 			log.Error("Ошибка получения данных из json", err)
@@ -38,11 +47,12 @@ func postStorage(tCreate storageCreacte) http.HandlerFunc {
 
 		err = validateRequestPost(req, log, w, r)
 		if err != nil {
-			render.JSON(w, r, httpModel.Error("не правильно переданны данные"))
+			log.Error("Ошибка валидации данных из json", err)
+			render.JSON(w, r, httpModel.Error("ошибка валидации данных"))
 			return
 		}
 
-		res, err := tCreate.postTargetSql(req.Sum, req.Accumulated, req.DeadLineDate)
+		res, err := sCreate.postStorageSql(req.Sum, req.Accumulated, req.DeadLineDate)
 		if err != nil {
 			log.Error("Ошибка создания storage", err)
 			render.JSON(w, r, httpModel.Error("Что-то пошло не так при создании цели"))
@@ -56,7 +66,48 @@ func postStorage(tCreate storageCreacte) http.HandlerFunc {
 		}
 
 		render.JSON(w, r, responseStorage{
-			Id:       res.Id,
+			Storage:  res,
+			Response: httpModel.OK(),
+		})
+	}
+}
+
+func getStorage(sFind storageFind) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		log := slog.With("service", "storage get")
+
+		var req requestStorageFind
+		err := render.DecodeJSON(r.Body, &req)
+		if err != nil {
+			log.Error("Ошибка получения данных из json", err)
+			render.JSON(w, r, httpModel.Error("не правильно переданны данные"))
+			return
+		}
+
+		validate := validator.New()
+		err = validate.Struct(req)
+		if err != nil {
+			errors := err.(validator.ValidationErrors)
+			log.Info("Переданны не все данные", errors)
+			render.JSON(w, r, httpModel.Error("не правильно переданны данные"))
+			return
+		}
+
+		res, err := sFind.getStorageSql(req.Id)
+		if err != nil {
+			log.Error("Ошибка нахождения storage", err)
+			render.JSON(w, r, httpModel.Error("Что-то пошло не так при нахождении цели"))
+			return
+		}
+
+		if res == nil {
+			log.Error("Ошибка получение данных storage: пустой рузельтат ответа")
+			render.JSON(w, r, httpModel.Error("Что-то пошло не так при нахождении цели"))
+			return
+		}
+
+		render.JSON(w, r, responseStorage{
+			Storage:  res,
 			Response: httpModel.OK(),
 		})
 	}
