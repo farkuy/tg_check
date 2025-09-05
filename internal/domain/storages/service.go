@@ -37,6 +37,10 @@ type storageUpdate interface {
 	updateStorageSql(id, sum, accumulated int, deadLineDate time.Time) (*Storage, error)
 }
 
+type storageDelete interface {
+	deleteStorageSql(id int) error
+}
+
 func postStorage(sCreate storageCreate) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log := slog.With("service", "storage post")
@@ -166,5 +170,35 @@ func updateStorage(sUpdate storageUpdate) http.HandlerFunc {
 			Storage:  res,
 			Response: httpModel.OK(),
 		})
+	}
+}
+
+func delStorage(sDelete storageDelete) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		log := slog.With("service", "storage delete")
+
+		query := r.URL.Query()
+		id := query.Get("id")
+		if id == "" {
+			log.Error("Не найден параметр id для запроса. query: ", query)
+			render.JSON(w, r, httpModel.Error("Не задан id"))
+			return
+		}
+
+		idNum, err := strconv.Atoi(id)
+		if err != nil {
+			log.Error("Ошибка преобразования id к числу ", query)
+			render.JSON(w, r, httpModel.Error("Ошибка с заданным id"))
+			return
+		}
+
+		err = sDelete.deleteStorageSql(idNum)
+		if err != nil {
+			log.Error("Ошибка удаления storage", err)
+			render.JSON(w, r, httpModel.Error("Что-то пошло не так при удалении цели"))
+			return
+		}
+
+		render.JSON(w, r, httpModel.OK())
 	}
 }

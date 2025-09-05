@@ -78,3 +78,16 @@ func (storage *StorageWrapper) updateStorageSql(id, sum, accumulated int, deadLi
 
 	return data, nil
 }
+
+func (storage *StorageWrapper) deleteStorageSql(id int) error {
+	log := slog.With("repository", "storage delete")
+
+	_, err := storage.DB.Exec(deleteStorage, id)
+
+	if err != nil {
+		log.Error("ошибка получение цели", err)
+		return fmt.Errorf("ошибка получения удаляемого storage с id:(%v)", id)
+	}
+
+	return nil
+}

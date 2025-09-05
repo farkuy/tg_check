@@ -9,7 +9,8 @@ import (
 func StoragesHandlersInit(router *chi.Mux, storage *database.Storage) {
 	wrapper := &StorageWrapper{storage}
 
-	router.Post("/storages", postStorage(wrapper))
-	router.Get("/storages", getStorage(wrapper))
-	router.Put("/storages", updateStorage(wrapper))
+	router.Post("/storage", postStorage(wrapper))
+	router.Get("/storage", getStorage(wrapper))
+	router.Put("/storage", updateStorage(wrapper))
+	router.Delete("/storage", delStorage(wrapper))
 }
