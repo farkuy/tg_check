@@ -8,10 +8,9 @@ import (
 	"time"
 
 	"github.com/go-chi/render"
-	"github.com/go-playground/validator/v10"
 )
 
-type requestStorageCreate struct {
+type requestStorage struct {
 	Sum          int       `json:"sum" validate:"required"`
 	Accumulated  int       `json:"accumulated" validate:"required"`
 	DeadLineDate time.Time `json:"deadLineDate" validate:"required"`
@@ -26,7 +25,7 @@ type responseStorage struct {
 	httpModel.Response
 }
 
-type storageCreacte interface {
+type storageCreate interface {
 	postStorageSql(sum, accumulated int, deadLineDate time.Time) (*Storage, error)
 }
 
@@ -34,11 +33,15 @@ type storageFind interface {
 	getStorageSql(id int) (*Storage, error)
 }
 
-func postStorage(sCreate storageCreacte) http.HandlerFunc {
+type storageUpdate interface {
+	updateStorageSql(id, sum, accumulated int, deadLineDate time.Time) (*Storage, error)
+}
+
+func postStorage(sCreate storageCreate) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log := slog.With("service", "storage post")
 
-		var req requestStorageCreate
+		var req requestStorage
 		err := render.DecodeJSON(r.Body, &req)
 		if err != nil {
 			log.Error("Ошибка получения данных из json", err)
@@ -77,23 +80,6 @@ func getStorage(sFind storageFind) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log := slog.With("service", "storage get")
 
-		var req requestStorageFind
-		err := render.DecodeJSON(r.Body, &req)
-		if err != nil {
-			log.Error("Ошибка получения данных из json", err)
-			render.JSON(w, r, httpModel.Error("не правильно переданны данные"))
-			return
-		}
-
-		validate := validator.New()
-		err = validate.Struct(req)
-		if err != nil {
-			errors := err.(validator.ValidationErrors)
-			log.Info("Переданны не все данные", errors)
-			render.JSON(w, r, httpModel.Error("не правильно переданны данные"))
-			return
-		}
-
 		query := r.URL.Query()
 		id := query.Get("id")
 		if id == "" {
@@ -119,6 +105,60 @@ func getStorage(sFind storageFind) http.HandlerFunc {
 		if res == nil {
 			log.Error("Ошибка получение данных storage: пустой рузельтат ответа")
 			render.JSON(w, r, httpModel.Error("Что-то пошло не так при нахождении цели"))
+			return
+		}
+
+		render.JSON(w, r, responseStorage{
+			Storage:  res,
+			Response: httpModel.OK(),
+		})
+	}
+}
+
+func updateStorage(sUpdate storageUpdate) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		log := slog.With("service", "storage put")
+
+		query := r.URL.Query()
+		id := query.Get("id")
+		if id == "" {
+			log.Error("Не найден параметр id для запроса. query: ", query)
+			render.JSON(w, r, httpModel.Error("Не задан id"))
+			return
+		}
+
+		idNum, err := strconv.Atoi(id)
+		if err != nil {
+			log.Error("Ошибка преобразования id к числу ", query)
+			render.JSON(w, r, httpModel.Error("Ошибка с заданным id"))
+			return
+		}
+
+		var req requestStorage
+		err = render.DecodeJSON(r.Body, &req)
+		if err != nil {
+			log.Error("Ошибка получения данных из json", err)
+			render.JSON(w, r, httpModel.Error("не правильно переданны данные"))
+			return
+		}
+
+		err = validateRequestPost(req, log, w, r)
+		if err != nil {
+			log.Error("Ошибка валидации данных из json", err)
+			render.JSON(w, r, httpModel.Error("ошибка валидации данных"))
+			return
+		}
+
+		res, err := sUpdate.updateStorageSql(idNum, req.Sum, req.Accumulated, req.DeadLineDate)
+		if err != nil {
+			log.Error("Ошибка обновдения storage", err)
+			render.JSON(w, r, httpModel.Error("Что-то пошло не так при обновлении цели"))
+			return
+		}
+
+		if res == nil {
+			log.Error("Ошибка получения обновленных данных storage: пустой рузельтат ответа")
+			render.JSON(w, r, httpModel.Error("Что-то пошло не так при обновлении цели"))
 			return
 		}
 

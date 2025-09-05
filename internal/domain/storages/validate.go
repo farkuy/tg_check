@@ -9,7 +9,7 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-func validateRequestPost(req requestStorageCreate, log *slog.Logger, w http.ResponseWriter, r *http.Request) error {
+func validateRequestPost(req requestStorage, log *slog.Logger, w http.ResponseWriter, r *http.Request) error {
 	validate := validator.New()
 	err := validate.Struct(req)
 

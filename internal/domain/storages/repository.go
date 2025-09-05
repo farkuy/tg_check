@@ -58,3 +58,23 @@ func (storage *StorageWrapper) getStorageSql(id int) (*Storage, error) {
 
 	return data, nil
 }
+
+func (storage *StorageWrapper) updateStorageSql(id, sum, accumulated int, deadLineDate time.Time) (*Storage, error) {
+	log := slog.With("repository", "storage put")
+
+	data := &Storage{}
+	err := storage.DB.QueryRow(updateStorageSum, sum, accumulated, deadLineDate, id).Scan(
+		&data.Id,
+		&data.Sum,
+		&data.Accumulated,
+		&data.CreateDate,
+		&data.DeadLineDate,
+	)
+
+	if err != nil {
+		log.Error("ошибка обновления", err)
+		return nil, fmt.Errorf("ошибка обновления storage id:  с sum:(%v), accumulated:(%v), deadLineDate:(%v)", id, sum, accumulated, deadLineDate)
+	}
+
+	return data, nil
+}

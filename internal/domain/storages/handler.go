@@ -11,4 +11,5 @@ func StoragesHandlersInit(router *chi.Mux, storage *database.Storage) {
 
 	router.Post("/storages", postStorage(wrapper))
 	router.Get("/storages", getStorage(wrapper))
+	router.Put("/storages", updateStorage(wrapper))
 }
