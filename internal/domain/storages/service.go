@@ -3,6 +3,7 @@ package storages
 import (
 	"log/slog"
 	"net/http"
+	"strconv"
 	"tg_check/internal/httpModel"
 	"time"
 
@@ -93,7 +94,22 @@ func getStorage(sFind storageFind) http.HandlerFunc {
 			return
 		}
 
-		res, err := sFind.getStorageSql(req.Id)
+		query := r.URL.Query()
+		id := query.Get("id")
+		if id == "" {
+			log.Error("Не найден параметр id для запроса. query: ", query)
+			render.JSON(w, r, httpModel.Error("Не задан id"))
+			return
+		}
+
+		idNum, err := strconv.Atoi(id)
+		if err != nil {
+			log.Error("Ошибка преобразования id к числу ", query)
+			render.JSON(w, r, httpModel.Error("Ошибка с заданным id"))
+			return
+		}
+
+		res, err := sFind.getStorageSql(idNum)
 		if err != nil {
 			log.Error("Ошибка нахождения storage", err)
 			render.JSON(w, r, httpModel.Error("Что-то пошло не так при нахождении цели"))
