@@ -1,7 +1,6 @@
 package storages
 
 import (
-	"fmt"
 	"log/slog"
 	"tg_check/internal/database"
 	"time"
@@ -33,7 +32,7 @@ func (storage *StorageWrapper) postStorageSql(sum, accumulated int, deadLineDate
 
 	if err != nil {
 		log.Error("ошибка создания", err)
-		return nil, fmt.Errorf("ошибка создания storage с sum:(%v), accumulated:(%v), deadLineDate:(%v)", sum, accumulated, deadLineDate)
+		return nil, err
 	}
 
 	return data, nil
@@ -53,7 +52,7 @@ func (storage *StorageWrapper) getStorageSql(id int) (*Storage, error) {
 
 	if err != nil {
 		log.Error("ошибка получение цели", err)
-		return nil, fmt.Errorf("ошибка получения storage с id:(%v)", id)
+		return nil, err
 	}
 
 	return data, nil
@@ -73,7 +72,7 @@ func (storage *StorageWrapper) updateStorageSql(id, sum, accumulated int, deadLi
 
 	if err != nil {
 		log.Error("ошибка обновления", err)
-		return nil, fmt.Errorf("ошибка обновления storage id:  с sum:(%v), accumulated:(%v), deadLineDate:(%v)", id, sum, accumulated, deadLineDate)
+		return nil, err
 	}
 
 	return data, nil
@@ -86,7 +85,7 @@ func (storage *StorageWrapper) deleteStorageSql(id int) error {
 
 	if err != nil {
 		log.Error("ошибка получение цели", err)
-		return fmt.Errorf("ошибка получения удаляемого storage с id:(%v)", id)
+		return err
 	}
 
 	return nil

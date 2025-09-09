@@ -1,12 +1,12 @@
 package main
 
 import (
-	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
 	"tg_check/internal/config"
 	"tg_check/internal/database"
+	storageHistoty "tg_check/internal/domain/storageHistory"
 	"tg_check/internal/domain/storages"
 	"tg_check/internal/logger"
 
@@ -28,10 +28,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println(storage.DB)
 	router := chi.NewRouter()
 
 	storages.StoragesHandlersInit(router, storage)
+	storageHistoty.StoragesHistoryHandlersInit(router, storage)
 
 	server := &http.Server{
 		Addr:         cfg.Host + ":" + cfg.Port,

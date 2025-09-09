@@ -1,9 +1,13 @@
 package storages
 
 import (
+	"database/sql"
+	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
+	storageHistoty "tg_check/internal/domain/storageHistory"
 	"tg_check/internal/httpModel"
 	"time"
 
@@ -56,7 +60,7 @@ func postStorage(sCreate storageCreate) http.HandlerFunc {
 		err = validateRequestPost(req, log, w, r)
 		if err != nil {
 			log.Error("Ошибка валидации данных из json", err)
-			render.JSON(w, r, httpModel.Error("ошибка валидации данных"))
+			render.JSON(w, r, httpModel.Error(err.Error()))
 			return
 		}
 
@@ -77,6 +81,8 @@ func postStorage(sCreate storageCreate) http.HandlerFunc {
 			Storage:  res,
 			Response: httpModel.OK(),
 		})
+
+		storageHistoty.StoragePoint.Update(storageHistoty.CreateHistory{TypeChange: "pluse", ChangeSum: res.Accumulated, StorageId: res.Id})
 	}
 }
 
@@ -101,6 +107,10 @@ func getStorage(sFind storageFind) http.HandlerFunc {
 
 		res, err := sFind.getStorageSql(idNum)
 		if err != nil {
+			if errors.Is(sql.ErrNoRows, err) {
+				render.JSON(w, r, httpModel.Error("Цели с такой id не существует"))
+				return
+			}
 			log.Error("Ошибка нахождения storage", err)
 			render.JSON(w, r, httpModel.Error("Что-то пошло не так при нахождении цели"))
 			return
@@ -111,6 +121,8 @@ func getStorage(sFind storageFind) http.HandlerFunc {
 			render.JSON(w, r, httpModel.Error("Что-то пошло не так при нахождении цели"))
 			return
 		}
+
+		fmt.Println(res)
 
 		render.JSON(w, r, responseStorage{
 			Storage:  res,
@@ -149,12 +161,16 @@ func updateStorage(sUpdate storageUpdate) http.HandlerFunc {
 		err = validateRequestPost(req, log, w, r)
 		if err != nil {
 			log.Error("Ошибка валидации данных из json", err)
-			render.JSON(w, r, httpModel.Error("ошибка валидации данных"))
+			render.JSON(w, r, httpModel.Error(err.Error()))
 			return
 		}
 
 		res, err := sUpdate.updateStorageSql(idNum, req.Sum, req.Accumulated, req.DeadLineDate)
 		if err != nil {
+			if errors.Is(sql.ErrNoRows, err) {
+				render.JSON(w, r, httpModel.Error("Цели с такой id не существует"))
+				return
+			}
 			log.Error("Ошибка обновдения storage", err)
 			render.JSON(w, r, httpModel.Error("Что-то пошло не так при обновлении цели"))
 			return
@@ -170,6 +186,8 @@ func updateStorage(sUpdate storageUpdate) http.HandlerFunc {
 			Storage:  res,
 			Response: httpModel.OK(),
 		})
+
+		storageHistoty.StoragePoint.Update(storageHistoty.CreateHistory{TypeChange: "pluse", ChangeSum: res.Accumulated, StorageId: res.Id})
 	}
 }
 
